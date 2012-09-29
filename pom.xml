@@ -56,6 +56,15 @@
     </license>
   </licenses>
 
+  <dependencies>
+    <dependency>
+      <groupId>org.jenkins-ci</groupId>
+      <artifactId>ant-interceptor</artifactId>
+      <version>1.0-SNAPSHOT</version>
+      <classifier>jar-with-dependencies</classifier>
+    </dependency>
+  </dependencies>
+
     <pluginRepositories>
         <pluginRepository>
             <id>repo.jenkins-ci.org</id>

@@ -23,6 +23,7 @@
  */
 package hudson.tasks;
 
+import com.google.common.io.Closeables;
 import hudson.CopyOnWrite;
 import hudson.EnvVars;
 import hudson.Extension;
@@ -35,33 +36,34 @@ import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.Computer;
 import hudson.model.EnvironmentSpecific;
-import jenkins.model.Jenkins;
 import hudson.model.Node;
 import hudson.model.TaskListener;
 import hudson.remoting.Callable;
 import hudson.slaves.NodeSpecific;
-import hudson.tasks._ant.Messages;
 import hudson.tasks._ant.AntConsoleAnnotator;
+import hudson.tasks._ant.AntInterceptorServer;
+import hudson.tasks._ant.DemoAntListener;
+import hudson.tasks._ant.Messages;
+import hudson.tools.DownloadFromUrlInstaller;
 import hudson.tools.ToolDescriptor;
 import hudson.tools.ToolInstallation;
-import hudson.tools.DownloadFromUrlInstaller;
 import hudson.tools.ToolInstaller;
 import hudson.tools.ToolProperty;
 import hudson.util.ArgumentListBuilder;
-import hudson.util.VariableResolver;
 import hudson.util.FormValidation;
+import hudson.util.VariableResolver;
 import hudson.util.XStream2;
-import net.sf.json.JSONObject;
+import jenkins.model.Jenkins;
+import org.jenkinsci.ant.AntListener;
 import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.QueryParameter;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Properties;
-import java.util.List;
 import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 
 /**
@@ -143,7 +145,7 @@ public class Ant extends Builder {
 
         EnvVars env = build.getEnvironment(listener);
         env.overrideAll(build.getBuildVariables());
-        
+
         AntInstallation ai = getAnt();
         if(ai==null) {
             args.add(launcher.isUnix() ? "ant" : "ant.bat");
@@ -209,6 +211,9 @@ public class Ant extends Builder {
             args = new ArgumentListBuilder(newArgs.toArray(new String[newArgs.size()]));
         }
 
+        AntInterceptorServer server = new AntInterceptorServer(Collections.<AntListener>singletonList(new DemoAntListener()));
+        server.buildEnvVars(env);
+
         long startTime = System.currentTimeMillis();
         try {
             AntConsoleAnnotator aca = new AntConsoleAnnotator(listener.getLogger(),build.getCharset());
@@ -233,6 +238,8 @@ public class Ant extends Builder {
             }
             e.printStackTrace( listener.fatalError(errorMessage) );
             return false;
+        } finally {
+            Closeables.closeQuietly(server);
         }
     }
 
